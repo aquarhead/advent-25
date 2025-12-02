@@ -2,24 +2,36 @@ use std::collections::HashSet;
 use std::iter::repeat;
 
 pub fn solve(input: &str) -> (u64, u64) {
-  let p1 = input
-    .trim()
-    .split(',')
-    .flat_map(|r| find_repeats(r, 2))
-    // this assumes no overlap on the ranges
-    .collect::<HashSet<_>>()
-    .iter()
-    .sum();
-
-  let p2 = input
-    .trim()
-    .split(',')
-    .flat_map(find_invalid_ids)
-    .collect::<HashSet<_>>()
-    .iter()
-    .sum();
+  let p1 = input.trim().split(',').map(|r| find_repeats(r, 2)).sum();
+  let p2 = input.trim().split(',').flat_map(find_invalid_ids).sum();
 
   (p1, p2)
+}
+
+fn find_start(s: &str, split: usize) -> u64 {
+  if s.len() < split {
+    // start will always be lower than end, so we may try splits more than length of start
+    // in those cases we just try from 1
+    1
+  } else {
+    if s.len() % split == 0 {
+      let (first, _) = s.split_at(s.len() / split);
+      first.parse().unwrap()
+    } else {
+      // if the start is not divisble by split, the next possible number will be 1_(a few)0 repeated
+      10u64.pow((s.len() / split) as u32)
+    }
+  }
+}
+
+fn find_end(s: &str, split: usize) -> u64 {
+  if s.len() % split == 0 {
+    let (first, _) = s.split_at(s.len() / split);
+    first.parse().unwrap()
+  } else {
+    // for end, the max possible number in an odd split is (a few)9s
+    10u64.pow((s.len() / split) as u32) - 1
+  }
 }
 
 fn find_invalid_ids(range: &str) -> impl Iterator<Item = u64> {
@@ -28,61 +40,27 @@ fn find_invalid_ids(range: &str) -> impl Iterator<Item = u64> {
   let end_len = parts.next().unwrap().len();
 
   let max_len = start_len.max(end_len);
-  (2..=max_len).flat_map(|n| find_repeats(range, n))
+  (2..=max_len).map(|n| find_repeats(range, n))
 }
 
-fn find_repeats(range: &str, split: usize) -> Vec<u64> {
-  let mut ret = Vec::new();
+fn find_repeats(range: &str, split: usize) -> u64 {
+  let mut ret = HashSet::new();
   let mut parts = range.split('-');
   let start_str = parts.next().unwrap();
   let start = start_str.parse().unwrap();
+  let check_start = find_start(start_str, split);
   let end_str = parts.next().unwrap();
-  let end = end_str.parse::<u64>().unwrap();
+  let end = end_str.parse().unwrap();
+  let check_end = find_end(end_str, split);
 
-  let mut check: u64 = if start_str.len() % split == 0 {
-    let (first, _) = start_str.split_at(start_str.len() / split);
-    first.parse().unwrap()
-  } else {
-    10u64.pow((start_str.len() / split) as u32)
-  };
-
-  loop {
-    let num = repeated(check, split);
-    check += 1;
-    if num < start {
-      continue;
-    }
-    if num <= end {
-      ret.push(num);
-    } else {
-      break;
+  for n in check_start..=check_end {
+    let num = repeated(n, split);
+    if num >= start && num <= end {
+      ret.insert(num);
     }
   }
 
-  let mut check: u64 = if end_str.len() % split == 0 {
-    let (first, _) = end_str.split_at(end_str.len() / split);
-    first.parse().unwrap()
-  } else {
-    10u64.pow((end_str.len() / split) as u32)
-  };
-
-  loop {
-    if check < 1 {
-      break;
-    }
-    let num = repeated(check, split);
-    check -= 1;
-    if num > end {
-      continue;
-    }
-    if num >= start {
-      ret.push(num);
-    } else {
-      break;
-    }
-  }
-
-  ret
+  ret.iter().sum()
 }
 
 fn repeated(half: u64, num: usize) -> u64 {
