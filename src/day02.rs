@@ -6,6 +6,7 @@ pub fn solve(input: &str) -> (u64, u64) {
     .trim()
     .split(',')
     .flat_map(|r| find_repeats(r, 2))
+    // this assumes no overlap on the ranges
     .collect::<HashSet<_>>()
     .iter()
     .sum();
