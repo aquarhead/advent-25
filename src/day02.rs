@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::iter::repeat;
 
 pub fn solve(input: &str) -> (u64, u64) {
-  let p1 = input.trim().split(',').map(|r| find_repeats(r, 2)).sum();
+  let p1 = input.trim().split(',').flat_map(|r| find_repeats(r, 2)).sum();
   let p2 = input.trim().split(',').flat_map(find_invalid_ids).sum();
 
   (p1, p2)
@@ -40,10 +40,13 @@ fn find_invalid_ids(range: &str) -> impl Iterator<Item = u64> {
   let end_len = parts.next().unwrap().len();
 
   let max_len = start_len.max(end_len);
-  (2..=max_len).map(|n| find_repeats(range, n))
+  (2..=max_len)
+    .flat_map(|n| find_repeats(range, n))
+    .collect::<HashSet<u64>>()
+    .into_iter()
 }
 
-fn find_repeats(range: &str, split: usize) -> u64 {
+fn find_repeats(range: &str, split: usize) -> impl Iterator<Item = u64> {
   let mut ret = HashSet::new();
   let mut parts = range.split('-');
   let start_str = parts.next().unwrap();
@@ -60,7 +63,7 @@ fn find_repeats(range: &str, split: usize) -> u64 {
     }
   }
 
-  ret.iter().sum()
+  ret.into_iter()
 }
 
 fn repeated(half: u64, num: usize) -> u64 {
