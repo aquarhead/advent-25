@@ -1,6 +1,6 @@
-pub fn solve(input: &str) -> (usize, usize) {
+pub fn solve(input: &str) -> (usize, u64) {
   let (ranges, ids) = input.trim().split_once("\n\n").unwrap();
-  let ranges = ranges
+  let mut ranges = ranges
     .lines()
     .map(|r| {
       let (start, end) = r.split_once('-').unwrap();
@@ -14,7 +14,24 @@ pub fn solve(input: &str) -> (usize, usize) {
     .filter(|i| ranges.iter().any(|r| *i >= r.0 && *i <= r.1))
     .count();
 
-  (p1, 0)
+  ranges.sort_by_key(|r| r.0);
+  let mut p2 = 0;
+  let last_range = ranges
+    .into_iter()
+    .reduce(|last_range, r| {
+      if r.0 > last_range.1 {
+        // non-overlapping ranges, count the last and track new
+        p2 += last_range.1 - last_range.0 + 1;
+        r
+      } else {
+        (last_range.0, r.1.max(last_range.1))
+      }
+    })
+    .unwrap();
+
+  p2 += last_range.1 - last_range.0 + 1;
+
+  (p1, p2)
 }
 
 #[cfg(test)]
@@ -37,6 +54,6 @@ mod tests {
 32
 ";
 
-    assert_eq!((3, 0), solve(input));
+    assert_eq!((3, 14), solve(input));
   }
 }
